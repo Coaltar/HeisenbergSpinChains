@@ -16,3 +16,11 @@ Future improvements to this might include:
 - Message passing to make use of multiple cpus
 - Port it to C (yeah right!)
 - Expand to work with 2 Dimensional or Anisotropic lattices 
+
+
+## Sources and Background
+
+Information on some of the theory and mathematics behind spin chains can be found here:
+
+- https://arxiv.org/abs/1209.0115
+- https://arxiv.org/abs/hep-th/9810032
