@@ -211,15 +211,15 @@ class LatticeGenerator_1d:
 
 
 def demo():
-    lattice = LatticeGenerator_1d(11, lat)
+    lattice = LatticeGenerator_1d(7, lat)
 
-    # lattice.generate_open_hamiltonians()
-    # lattice.generate_closed_hamiltonians()
-    # lattice.diagonalize_hamiltonians()
-    # lattice.display_graphs()
-    # lattice.print_vals()
+    lattice.generate_open_hamiltonians()
+    lattice.generate_closed_hamiltonians()
+    lattice.diagonalize_hamiltonians()
+    lattice.display_graphs()
+    lattice.print_vals()
 
-    lattice.__init__(18, lat_sparse)
+    lattice.__init__(7, lat_sparse)
 
     lattice.generate_open_hamiltonians()
     lattice.generate_closed_hamiltonians()
