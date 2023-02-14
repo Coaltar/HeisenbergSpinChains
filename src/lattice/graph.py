@@ -7,10 +7,10 @@ import pandas as pd
 import scipy as scp
 import seaborn as sns
 from common import runtime_decorator
+from datatypes import Diagonalized_Hamiltonian, Hamiltonian, LinePlot
 
 # local
 import lattice as lat
-from datatypes import Diagonalized_Hamiltonian, Hamiltonian, LinePlot
 
 if __name__ == "__main__":
     print("No main function")

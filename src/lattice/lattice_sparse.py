@@ -17,11 +17,9 @@ id_2 = scp.sparse.coo_matrix(np.identity(2))
 def matrix_expansion(matrix_a: scp.sparse.coo_matrix, matrix_b: scp.sparse.coo_matrix):
     """
     This is a type of tensor product.
-    todo: Specify
+    todo: Specify????
     """
 
-    # todo: this needs to be more agnostic towards amount of data
-    # use a parameter from these coo matrixes that indicates actualy dimensions of matrix
     left_mat_size = matrix_a.shape[0]
     right_mat_size = matrix_b.shape[0]
     new_dimension = left_mat_size * right_mat_size

@@ -6,10 +6,10 @@ import matplotlib as mtplt
 import numpy as np
 import scipy as scp
 from common import runtime_decorator
+from datatypes import Diagonalized_Hamiltonian, Hamiltonian, LinePlot
 from graph import graph_test
 
 import lattice as lat
-from datatypes import Diagonalized_Hamiltonian, Hamiltonian, LinePlot
 
 
 class LatticeGenerator_1d:
@@ -117,6 +117,8 @@ class LatticeGenerator_1d:
     # ============================
     # Runtime decorated functions
     # Imported from other scripts
+    # TODO: There is almost certainly a better way to organize and wrap these functions
+    # Maybe a function map instead????
     # ============================
 
     @runtime_decorator
@@ -202,12 +204,6 @@ class LatticeGenerator_1d:
             size = ham.size
             base = min(ham.eigenvalues) / 4  # todo: remove factor of 4
             print(f"Lattice Size: {size}\nBase State: {base}\n")
-
-    # @dataclass
-    # class LinePlot:
-    #     plot_title: str
-    #     x_values: list[int]
-    #     y_values: list[float]
 
 
 def demo():
