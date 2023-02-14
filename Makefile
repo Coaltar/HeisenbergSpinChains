@@ -1,7 +1,5 @@
-.PHONY: start test test-sparse test-graph
+.PHONY: test test-sparse test-graph
 
-start: 
-	pdm run jupyter-notebook .
 
 test:
 	pdm run python "./src/lattice/LatticeGenerator.py"
