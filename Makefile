@@ -4,7 +4,7 @@ start:
 	pdm run jupyter-notebook .
 
 test:
-	pdm run python "./src/lattice/lattice.py"
+	pdm run python "./src/lattice/LatticeGenerator.py"
 
 test-sparse: 
 	pdm run python "./src/lattice/lattice_sparse.py"
