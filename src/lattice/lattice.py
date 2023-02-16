@@ -20,7 +20,6 @@ def matrix_expansion(matrix_a, matrix_b):
     Brute force tensor product using nested loop.
     Very bad.
     """
-    tensor_dot = np.tensordot(matrix_a, matrix_b, axes=0)
 
     row_elems = []
     for row in matrix_a:
