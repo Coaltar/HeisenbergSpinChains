@@ -24,5 +24,5 @@ class Diagonalized_Hamiltonian:
 @dataclass
 class LinePlot:
     plot_title: str
-    x_values: list[int]
+    x_values: list[int] | list[float]
     y_values: list[float]

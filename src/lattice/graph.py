@@ -17,7 +17,12 @@ if __name__ == "__main__":
 
 
 def graph_test(
-    graph_title: str, x_label: str, y_label: str, plots: list[LinePlot], scale
+    graph_title: str,
+    x_label: str,
+    y_label: str,
+    plots: list[LinePlot],
+    scale,
+    invert_x_axis: bool = False,
 ):
     data_len = len(plots[0].x_values)
 
@@ -43,4 +48,8 @@ def graph_test(
         data=dataframe, x=f"{x_label}", y=f"{y_label}", hue="Plot Label", marker="o"
     )
     plot.set(xscale=scale)
+
+    if invert_x_axis:
+        plt.invert_xaxis()
+
     plt.show()

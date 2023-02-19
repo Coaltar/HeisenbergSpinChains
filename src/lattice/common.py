@@ -11,3 +11,12 @@ def runtime_decorator(func):
         # print(func.__name__, ": ", end - start)
 
     return wrap
+
+
+def power_of_2(num):
+    while num >= 1:
+        if num == 1:
+            return True
+        else:
+            num = num / 2
+    return False

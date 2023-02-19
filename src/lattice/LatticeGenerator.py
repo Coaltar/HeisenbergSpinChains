@@ -1,11 +1,12 @@
 # import logging as LOG
 import logging as LOG
+from dataclasses import dataclass
 
 import lattice_sparse as lat_sparse
 import matplotlib as mtplt
 import numpy as np
 import scipy as scp
-from common import runtime_decorator
+from common import *
 from datatypes import Diagonalized_Hamiltonian, Hamiltonian, LinePlot
 from graph import graph_test
 
@@ -146,7 +147,7 @@ class LatticeGenerator_1d:
     def diagonalize_hamiltonian(self, matrix):
         return self.func_set.diagonalize(matrix)
 
-    def display_graphs(self):
+    def runtime_graphs(self):
         # generate LinePlots
         graph_title = "Runtime Test"
         x_label = "Matrix Dimension"
@@ -174,6 +175,43 @@ class LatticeGenerator_1d:
         # plot.set(xscale=base_2_scale)
         # g_results.set(xscale='log')
         #
+        graph_test(graph_title, x_label, y_label, plots, base_2_scale)
+
+    def energy_graphs(self):
+        plots = []
+
+        plot_label = "Open Chain Lattice"
+        x_vals = []
+        y_vals = []
+        for ham in self.diagonalized_hamiltonians:
+            # if power_of_2(ham.size):
+            if ham.size % 2 == 0:
+                base_energy = min(ham.eigenvalues)
+                sites = ham.size
+
+                x_vals.append(1 / sites)
+                y_vals.append(base_energy / sites)
+        plot = LinePlot(plot_label, x_vals, y_vals)
+        plots.append(plot)
+
+        plot_label = "Closed Chain Lattice"
+        x_vals = []
+        y_vals = []
+        for ham in self.diagonalized_closed_hamiltonians:
+            # if power_of_2(ham.size):
+            if ham.size % 2 == 0:
+                base_energy = min(ham.eigenvalues)
+                sites = ham.size
+
+                x_vals.append(1 / sites)
+                y_vals.append(base_energy / sites)
+        plot = LinePlot(plot_label, x_vals, y_vals)
+        plots.append(plot)
+
+        graph_title = "Base Energy vs Lattice Size"
+        x_label = "1/N"
+        y_label = "E/N"
+        base_2_scale = mtplt.scale.LogScale(axis="x", base=2)
         graph_test(graph_title, x_label, y_label, plots, base_2_scale)
 
     @staticmethod
@@ -205,23 +243,23 @@ class LatticeGenerator_1d:
             base = min(ham.eigenvalues) / 4  # todo: remove factor of 4
             print(f"Lattice Size: {size}\nBase State: {base}\n")
 
+    def generate_all(self):
+        self.generate_open_hamiltonians()
+        self.generate_closed_hamiltonians()
+        self.diagonalize_hamiltonians()
+
 
 def demo():
-    lattice = LatticeGenerator_1d(7, lat)
+    # lattice = LatticeGenerator_1d(7, lat)
+    # lattice.generate_all()
+    # lattice.runtime_graphs()
+    # lattice.print_vals()
 
-    lattice.generate_open_hamiltonians()
-    lattice.generate_closed_hamiltonians()
-    lattice.diagonalize_hamiltonians()
-    lattice.display_graphs()
+    lattice = LatticeGenerator_1d(16, lat_sparse)
+    lattice.generate_all()
+    # lattice.runtime_graphs()
     lattice.print_vals()
-
-    lattice.__init__(7, lat_sparse)
-
-    lattice.generate_open_hamiltonians()
-    lattice.generate_closed_hamiltonians()
-    lattice.diagonalize_hamiltonians()
-    lattice.display_graphs()
-    lattice.print_vals()
+    lattice.energy_graphs()
 
 
 if __name__ == "__main__":
