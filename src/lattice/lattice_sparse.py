@@ -1,4 +1,5 @@
 import logging as LOG
+from math import sqrt
 
 import numpy as np
 import scipy as scp

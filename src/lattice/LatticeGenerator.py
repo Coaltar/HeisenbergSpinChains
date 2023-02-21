@@ -1,6 +1,7 @@
 # import logging as LOG
 import logging as LOG
 from dataclasses import dataclass
+from math import sqrt
 
 import lattice_sparse as lat_sparse
 import matplotlib as mtplt
@@ -185,11 +186,11 @@ class LatticeGenerator_1d:
         y_vals = []
         for ham in self.diagonalized_hamiltonians:
             # if power_of_2(ham.size):
-            if ham.size % 2 == 0:
+            if ham.size % 2 == 0 and ham.size != 2:
                 base_energy = min(ham.eigenvalues)
                 sites = ham.size
 
-                x_vals.append(1 / sites)
+                x_vals.append(1 / sqrt(sites))
                 y_vals.append(base_energy / sites)
         plot = LinePlot(plot_label, x_vals, y_vals)
         plots.append(plot)
@@ -199,11 +200,11 @@ class LatticeGenerator_1d:
         y_vals = []
         for ham in self.diagonalized_closed_hamiltonians:
             # if power_of_2(ham.size):
-            if ham.size % 2 == 0:
+            if ham.size % 2 == 0 and ham.size != 2:
                 base_energy = min(ham.eigenvalues)
                 sites = ham.size
 
-                x_vals.append(1 / sites)
+                x_vals.append(1 / sqrt(sites))
                 y_vals.append(base_energy / sites)
         plot = LinePlot(plot_label, x_vals, y_vals)
         plots.append(plot)
