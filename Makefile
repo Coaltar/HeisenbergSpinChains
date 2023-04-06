@@ -9,3 +9,6 @@ test-sparse:
 
 test-graph: 
 	pdm run python "./src/lattice/graph.py"
+
+test-fitting: 
+	pdm run python "./src/fitting/fitting.py"

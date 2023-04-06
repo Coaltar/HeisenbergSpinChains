@@ -1,121 +1,58 @@
 # import logging as LOG
 import logging as LOG
 from dataclasses import dataclass
-from math import sqrt
+from math import sqrt, pi, log
 
+
+from pprint import pprint
 import lattice_sparse as lat_sparse
 import matplotlib as mtplt
 import numpy as np
 import scipy as scp
+import pandas as pd
 from common import *
-from datatypes import Diagonalized_Hamiltonian, Hamiltonian, LinePlot
-from graph import graph_test
+from datatypes import Hamiltonian, DataPlot
+from graph import graph_table, multi_graph
 
 import lattice as lat
 
 
-class LatticeGenerator_1d:
+class LatGen1d:
     def __init__(self, size: int, func_set):
         self.size = size
-
         self.hamiltonians = []
-        self.diagonalized_hamiltonians = []
-
-        self.closed_hamiltonians = []
-        self.diagonalized_closed_hamiltonians = []
-
+        self.cyclic_hamiltonians = []
         self.func_set = func_set
-        self.spin_x = func_set.spin_x
-        self.spin_y = func_set.spin_y
-        self.spin_z = func_set.spin_z
 
     def generate_open_hamiltonians(self):
         """
         Genereates hamiltonians using selected function set
         """
 
-        base_runtime, base_matrix = self.get_base_hamiltonian_matrix()
-        base_hamiltonian = Hamiltonian(
-            size=2,
-            matrix=base_matrix,
-            runtime_contribution=base_runtime,
-            runtime_cumulative=base_runtime,
-        )
-        self.hamiltonians.append(base_hamiltonian)
+        self.hamiltonians.append(self.func_set.construct_open_hamiltonian(2))
+        for n in range(2, self.size):
+            index = n - 2
+            prev_ham = self.hamiltonians[index]
 
-        for n in range(3, self.size + 1):
-            previous_index = n - 3
-            previous_hamiltonian = self.hamiltonians[previous_index]
-            # assert n - 1 == previous_hamiltonian.size
+            next_ham = self.func_set.get_next_hamil(prev_ham)
+            self.hamiltonians.append(next_ham)
+        for ham in self.hamiltonians:
+            self.func_set.diagonalize(ham)
 
-            previous_matrix = previous_hamiltonian.matrix
-            runtime_partial, new_matrix = self.get_next_hamil(previous_matrix, n)
-            runtime_cumulative = (
-                runtime_partial + previous_hamiltonian.runtime_cumulative
-            )
-
-            new_hamil = Hamiltonian(
-                size=n,
-                matrix=new_matrix,
-                runtime_contribution=runtime_partial,
-                runtime_cumulative=runtime_cumulative,
-            )
-            self.hamiltonians.append(new_hamil)
-
-    def generate_closed_hamiltonians(self):
+    def generate_cyclic_hamiltonians(self):
         """
         Generates Hamiltonians for closed lattice
         using previously constructed Hamiltonians for open lattice
         """
-        assert self.hamiltonians[0] != None
 
-        for hamil in self.hamiltonians:
-            matrix = hamil.matrix
-            size = hamil.size
-            runtime = hamil.runtime_cumulative
-
-            runtime_contribution, new_matrix = self.open_to_closed_hamiltonian(
-                matrix, size
-            )
-            runtime_cumulative = runtime_contribution + runtime
-
-            new_hamil = Hamiltonian(
-                size=size,
-                matrix=new_matrix,
-                runtime_contribution=runtime_contribution,
-                runtime_cumulative=runtime_cumulative,
-            )
-            self.closed_hamiltonians.append(new_hamil)
+        for n in range(2, self.size + 1):
+            index = n-2
+            open_ham = self.hamiltonians[index]
+            cylic_ham = self.func_set.open_to_closed_hamiltonian(open_ham)
+            self.cyclic_hamiltonians.append(cylic_ham)
+        for ham in self.cyclic_hamiltonians:
+            self.func_set.diagonalize(ham)
         return
-
-    def diagonalize_hamiltonians(self):
-        for ham in self.hamiltonians:
-            matrix = ham.matrix
-            runtime_cumulative = ham.runtime_cumulative
-            # runtime, res = self.diagonalize_hamiltonian(matrix)
-            runtime, (eigs, matrices) = self.diagonalize_hamiltonian(matrix)
-            new_diag = Diagonalized_Hamiltonian(
-                size=ham.size,
-                eigenvalues=eigs,
-                matrix=matrices,
-                runtime_contribution=runtime,
-                runtime_cumulative=runtime_cumulative + runtime,
-            )
-            self.diagonalized_hamiltonians.append(new_diag)
-
-        for ham in self.closed_hamiltonians:
-            matrix = ham.matrix
-            runtime_cumulative = ham.runtime_cumulative
-            runtime, (eigs, matrices) = self.diagonalize_hamiltonian(matrix)
-            new_diag = Diagonalized_Hamiltonian(
-                size=ham.size,
-                eigenvalues=eigs,
-                matrix=matrices,
-                runtime_contribution=runtime,
-                runtime_cumulative=runtime_cumulative + runtime,
-            )
-            self.diagonalized_closed_hamiltonians.append(new_diag)
-
     # ============================
     # Runtime decorated functions
     # Imported from other scripts
@@ -123,144 +60,238 @@ class LatticeGenerator_1d:
     # Maybe a function map instead????
     # ============================
 
-    @runtime_decorator
-    def get_base_hamiltonian_matrix(self):
-        base_hamiltonian_matrix = self.func_set.open_hamiltonian(2)
-        return base_hamiltonian_matrix
+    def show_runtime_graphs(self):
 
-    @runtime_decorator
-    def get_next_hamil(self, old_matrix: scp.sparse.coo_matrix, new_size: int):
-        """
-        Generates Hamiltonian H(n+1) from H(n).
-        Also wraps it in a runtime decorator.
-        """
-        new_ham = self.func_set.get_next_hamil(old_matrix, new_size)
-        return new_ham
-
-    @runtime_decorator
-    def open_to_closed_hamiltonian(
-        self, open_ham: scp.sparse.coo_matrix, lattice_size: int
-    ):
-        open_ham = self.func_set.open_to_closed_hamiltonian(open_ham, lattice_size)
-        return open_ham
-
-    @runtime_decorator
-    def diagonalize_hamiltonian(self, matrix):
-        return self.func_set.diagonalize(matrix)
-
-    def runtime_graphs(self):
-        # generate LinePlots
         graph_title = "Runtime Test"
         x_label = "Matrix Dimension"
         y_label = "Construction Runtime"
 
-        plots = []
+        open_ham_plot = DataPlot(
+            plot_title="Open Lattice",
+            x_values=[2**ham.size for ham in self.hamiltonians],
+            y_values=[ham.construction_time for ham in self.hamiltonians],
+            plot_type="lineplot"
+        )
 
-        open_hams = LatticeGenerator_1d.make_plot(self.hamiltonians, "Open Lattice")
-        closed_hams = LatticeGenerator_1d.make_plot(
-            self.closed_hamiltonians, "Closed Lattice"
+        open_ham_diag_plot = DataPlot(
+            plot_title="Diagonalized Open Lattice",
+            x_values=[2**ham.size for ham in self.hamiltonians],
+            y_values=[ham.diagonalization_time for ham in self.hamiltonians],
+            plot_type="lineplot"
         )
-        open_diagonalized_hams = LatticeGenerator_1d.make_plot(
-            self.diagonalized_hamiltonians, "Open Lattice, Diagonalized"
+
+        closed_ham_plot = DataPlot(
+            plot_title="Closed Lattice",
+            x_values=[2**ham.size for ham in self.cyclic_hamiltonians],
+            y_values=[ham.construction_time for ham in self.cyclic_hamiltonians],
+            plot_type="lineplot"
         )
-        closed_diagonalized_hams = LatticeGenerator_1d.make_plot(
-            self.diagonalized_closed_hamiltonians, "Closed Lattice, Diagonalized"
+
+        closed_ham_diag_plot = DataPlot(
+            plot_title="Diagonalized Closed Lattice",
+            x_values=[2**ham.size for ham in self.cyclic_hamiltonians],
+            y_values=[
+                ham.diagonalization_time for ham in self.cyclic_hamiltonians],
+            plot_type="lineplot"
         )
-        plots.append(open_hams)
-        plots.append(closed_hams)
-        plots.append(open_diagonalized_hams)
-        plots.append(closed_diagonalized_hams)
+
+        plots = []
+        plots.append(open_ham_plot)
+        plots.append(open_ham_diag_plot)
+        plots.append(closed_ham_plot)
+        plots.append(closed_ham_diag_plot)
 
         base_2_scale = mtplt.scale.LogScale(axis="x", base=2)
-        # plot.set(xticks=elem_count)
-        # plot.set(xscale=base_2_scale)
-        # g_results.set(xscale='log')
-        #
-        graph_test(graph_title, x_label, y_label, plots, base_2_scale)
-
-    def energy_graphs(self):
-        plots = []
-
-        plot_label = "Open Chain Lattice"
-        x_vals = []
-        y_vals = []
-        for ham in self.diagonalized_hamiltonians:
-            # if power_of_2(ham.size):
-            if ham.size % 2 == 0 and ham.size != 2:
-                base_energy = min(ham.eigenvalues)
-                sites = ham.size
-
-                x_vals.append(1 / sqrt(sites))
-                y_vals.append(base_energy / sites)
-        plot = LinePlot(plot_label, x_vals, y_vals)
-        plots.append(plot)
-
-        plot_label = "Closed Chain Lattice"
-        x_vals = []
-        y_vals = []
-        for ham in self.diagonalized_closed_hamiltonians:
-            # if power_of_2(ham.size):
-            if ham.size % 2 == 0 and ham.size != 2:
-                base_energy = min(ham.eigenvalues)
-                sites = ham.size
-
-                x_vals.append(1 / sqrt(sites))
-                y_vals.append(base_energy / sites)
-        plot = LinePlot(plot_label, x_vals, y_vals)
-        plots.append(plot)
-
-        graph_title = "Base Energy vs Lattice Size"
-        x_label = "1/N"
-        y_label = "E/N"
-        base_2_scale = mtplt.scale.LogScale(axis="x", base=2)
-        graph_test(graph_title, x_label, y_label, plots, base_2_scale)
+        multi_graph(graph_title, x_label, y_label, plots, base_2_scale)
+        # graph_lineplots(graph_title, x_label, y_label, plots, base_2_scale)
 
     @staticmethod
-    def make_plot(data_arr: Hamiltonian | Diagonalized_Hamiltonian, plot_label: str):
+    def energy_relationship(L, E_limit):
+        C = 3/8
+        # C = 0.3433
+        # C = 0.365
+        return E_limit - (pi**2/(6*L**2))*(1 + (C / (np.log(L)**3)))
 
-        x_vals = []
+    @staticmethod
+    def domain_condition(size):
+        if(size % 2 == 0 and size > 2):
+            # if(size % 2 == 0):
+            return True
+        else:
+            return False
+
+    def show_curve_fit(self):
+        open_chain_energy_per_site_plot = DataPlot(
+            plot_title="Open Chain Energy Per Site",
+            x_values=[((ham.size))
+                      for ham in self.hamiltonians if LatGen1d.domain_condition(ham.size)],
+            y_values=[min(
+                ham.eigenvalues)/ham.size for ham in self.hamiltonians if LatGen1d.domain_condition(ham.size)],
+            plot_type="scatterplot"
+        )
+
+        closed_chain_energy_per_site_plot = DataPlot(
+            plot_title="Closed Chain Energy Per Site",
+            x_values=[((ham.size))
+                      for ham in self.cyclic_hamiltonians if LatGen1d.domain_condition(ham.size)],
+            y_values=[min(
+                ham.eigenvalues)/ham.size for ham in self.cyclic_hamiltonians if LatGen1d.domain_condition(ham.size)],
+            plot_type="scatterplot"
+        )
+
+        L_vals = []
         y_vals = []
-        for ham in data_arr:
-            size = 2**ham.size
-            runtime = ham.runtime_cumulative
-            x_vals.append(size)
 
-            y_vals.append(runtime)
-        plot = LinePlot(plot_label, x_vals, y_vals)
-        return plot
+        for ham in self.cyclic_hamiltonians:
+            print("???")
+            if (LatGen1d.domain_condition(ham.size)):
+                L = ham.size
+                L_vals.append(L)
+                base_e = min(ham.eigenvalues)
+                y_vals.append(base_e/L)
+
+        print(L_vals)
+        print(y_vals)
+        popt, pcov = scp.optimize.curve_fit(
+            LatGen1d.energy_relationship, np.array(L_vals), np.array(y_vals))
+
+        energy_limit = popt[0]
+        print(energy_limit)
+
+        curve_x = np.linspace(10, 100, 100)
+        curve_y = LatGen1d.energy_relationship(curve_x, energy_limit)
+
+        # curve_x = 1 / curve_x**2
+
+        curve_x = curve_x.tolist()
+        curve_y = curve_y.tolist()
+
+        # energy_per_site = curve_y
+
+        fit_plot = DataPlot(plot_title="Curve Fit", x_values=curve_x,
+                            y_values=curve_y, plot_type="scatterplot")
+
+        plots = []
+        graph_title = "Base Energy Per Lattice Site"
+        x_label = "1/N^2"
+        y_label = "E/N"
+        plots.append(open_chain_energy_per_site_plot)
+        plots.append(closed_chain_energy_per_site_plot)
+        plots.append(fit_plot)
+
+        multi_graph(graph_title, x_label, y_label, plots)
+
+        open_chain_energy_per_site_plot = DataPlot(
+            plot_title="Open Chain Energy Per Site",
+            x_values=[(1/(ham.size**2))
+                      for ham in self.hamiltonians if LatGen1d.domain_condition(ham.size)],
+            y_values=[min(
+                ham.eigenvalues)/ham.size for ham in self.hamiltonians if LatGen1d.domain_condition(ham.size)],
+            plot_type="scatterplot"
+        )
+
+        closed_chain_energy_per_site_plot = DataPlot(
+            plot_title="Closed Chain Energy Per Site",
+            x_values=[(1/(ham.size**2))
+                      for ham in self.cyclic_hamiltonians if LatGen1d.domain_condition(ham.size)],
+            y_values=[min(
+                ham.eigenvalues)/ham.size for ham in self.cyclic_hamiltonians if LatGen1d.domain_condition(ham.size)],
+            plot_type="scatterplot"
+        )
+
+        L_vals = []
+        y_vals = []
+
+        for ham in self.cyclic_hamiltonians:
+            if (LatGen1d.domain_condition(ham.size)):
+                L = ham.size
+                L_vals.append(L)
+                base_e = min(ham.eigenvalues)
+                y_vals.append(base_e/L)
+
+        popt, pcov = scp.optimize.curve_fit(
+            LatGen1d.energy_relationship, np.array(L_vals), np.array(y_vals))
+
+        energy_limit = popt[0]
+        print(energy_limit)
+
+        curve_x = np.linspace(10, 100, 100)
+        curve_y = LatGen1d.energy_relationship(curve_x, energy_limit)
+
+        curve_x = 1 / curve_x**2
+
+        curve_x = curve_x.tolist()
+        curve_y = curve_y.tolist()
+
+        # energy_per_site = curve_y
+
+        fit_plot = DataPlot(plot_title="Curve Fit", x_values=curve_x,
+                            y_values=curve_y, plot_type="scatterplot")
+
+        plots = []
+        graph_title = "Base Energy Per Lattice Site"
+        x_label = "1/N^2"
+        y_label = "E/N"
+        plots.append(open_chain_energy_per_site_plot)
+        plots.append(closed_chain_energy_per_site_plot)
+        plots.append(fit_plot)
+
+        multi_graph(graph_title, x_label, y_label, plots)
 
     def print_vals(self):
-        for ham in self.diagonalized_hamiltonians:
+        print("Open, noncyclic Hamiltonians")
+        print("Lattice Size \t| Base Energy")
+
+        with open("open_chain.txt", "w") as file:
+            file.write(("Lattice Size \t| Base Energy\n"))
+            for ham in self.hamiltonians:
+                size = ham.size
+                base = min(ham.eigenvalues)
+                base = float(base)
+                file.write(f"{size} \t\t, {base}\n")
+
+        for ham in self.hamiltonians:
             size = ham.size
             base = min(ham.eigenvalues)
-            print(f"Lattice Size: {size}\nBase State: {base}\n")
+            base = float(base)
+            print(f"{size} \t\t, {base}")
 
-        print("====================\n")
-        print("====================\n")
-        print("====================\n")
+        print("====================")
+        print("====================")
+        print("====================")
 
-        for ham in self.diagonalized_closed_hamiltonians:
+        with open("closed_chain.txt", "w") as file:
+            file.write(("Lattice Size \t| Base Energy\n"))
+            for ham in self.cyclic_hamiltonians:
+                size = ham.size
+                base = min(ham.eigenvalues)
+                base = float(base)
+                file.write(f"{size} \t\t, {base}\n")
+
+        print("Closed, cyclic Hamiltonians")
+        print("Lattice Size \t| Base Energy")
+        for ham in self.cyclic_hamiltonians:
             size = ham.size
-            base = min(ham.eigenvalues) / 4  # todo: remove factor of 4
-            print(f"Lattice Size: {size}\nBase State: {base}\n")
+            base = min(ham.eigenvalues)  # todo: remove factor of 4?
+            base = float(base)
+            print(f"{size} \t\t, {base}")
 
     def generate_all(self):
         self.generate_open_hamiltonians()
-        self.generate_closed_hamiltonians()
-        self.diagonalize_hamiltonians()
+        self.generate_cyclic_hamiltonians()
+
+        # self.diagonalize_hamiltonians()
 
 
 def demo():
-    # lattice = LatticeGenerator_1d(7, lat)
-    # lattice.generate_all()
-    # lattice.runtime_graphs()
-    # lattice.print_vals()
-
-    lattice = LatticeGenerator_1d(16, lat_sparse)
+    lattice = LatGen1d(3, lat_sparse)
     lattice.generate_all()
-    # lattice.runtime_graphs()
-    lattice.print_vals()
-    lattice.energy_graphs()
+
+    print(lattice.hamiltonians[1].matrix)
+    print(lattice.hamiltonians[1].matrix.todense())
+    # lattice.show_runtime_graphs()
+    # lattice.show_curve_fit()
+    # lattice.print_vals()
 
 
 if __name__ == "__main__":
