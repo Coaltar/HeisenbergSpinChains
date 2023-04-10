@@ -4,11 +4,8 @@ from math import sqrt
 import numpy as np
 # from numpy import sparse.coo_matrix as COO
 import scipy as scp
-from common import runtime_decorator
 from datatypes import Hamiltonian
 from datetime import datetime
-
-# Constants
 
 
 spin_x = scp.sparse.coo_matrix(np.array(([0 + 0j, 1 + 0j], [1 + 0j, 0 + 0j])))
@@ -71,18 +68,10 @@ def calculate_spin_interaction_matrix(spin_matrix: scp.sparse.coo_matrix, i: int
     for a specific value of i and j
     """
 
-    # print("Start")
     product = scp.sparse.coo_matrix([[1]])
     for x in range(particles - 1, -1, -1):
         product = kronecker_product(
             elem_from_index(x, i, j, spin_matrix), product)
-        # produt = np.kron(elem_from_index(x, i, j, spin_matrix), product)
-        # print(x)
-        # print(elem_from_index(x, i, j, spin_matrix))
-        # print("product")
-        # print(product)
-    # print("End Product")
-    # print(product)
     return product
 
 
@@ -99,10 +88,7 @@ def construct_open_hamiltonian(lattice_size: int) -> Hamiltonian:
     matrix_size = 2**lattice_size
     matrix_sum = scp.sparse.coo_matrix(
         ([], ([], [])), shape=(matrix_size, matrix_size))
-    # print(matrix_sum.shape)
-    # print(lattice_size)
-    # print(calculate_spin_interaction_matrix(spin_x, 0, 1, lattice_size).shape)
-    # print(matrix_sum)
+
     for x in range(lattice_size - 1):
         i = x
         j = x + 1
@@ -138,6 +124,7 @@ def open_to_closed_hamiltonian(ham: Hamiltonian) -> Hamiltonian:
         spin_y, lattice_size - 1, 0, lattice_size)
     z_contrib = calculate_spin_interaction_matrix(
         spin_z, lattice_size - 1, 0, lattice_size)
+
     new_matrix = np.add(new_matrix, x_contrib)
     new_matrix = np.add(new_matrix, y_contrib)
     new_matrix = np.add(new_matrix, z_contrib)
